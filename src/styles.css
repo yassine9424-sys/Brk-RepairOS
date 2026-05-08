@@ -257,3 +257,6 @@ th{color:#9FB3D1;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
   .brand h1{font-size:30px}
   .mini-grid,.mini-grid.two{grid-template-columns:1fr}
 }
+
+/* Stock simplifié */
+.form input::placeholder{color:#7f93b3}
