@@ -45,6 +45,7 @@ function App(){
 
   const [showRepairForm,setShowRepairForm]=useState(false)
   const [showStockForm,setShowStockForm]=useState(false)
+  const [stockCategory,setStockCategory]=useState('Batterie')
 
   const isAdmin = profile?.role === 'admin'
 
@@ -111,20 +112,24 @@ function App(){
   async function createPart(e){
     e.preventDefault()
     if(!isAdmin) return alert('Action réservée admin.')
+
     const f = new FormData(e.currentTarget)
-    const category = f.get('category')
     const model = f.get('model')
-    const location = f.get('location') || 'X'
-    const ref = f.get('ref') || `${category?.slice(0,3)}-${model?.replaceAll(' ','').slice(0,7)}-${location.replaceAll(' ','').slice(0,3)}`.toUpperCase()
+    const selectedCategory = f.get('category')
+    const customCategory = f.get('custom_category')
+    const category = selectedCategory === 'Autre' ? (customCategory || 'Autre') : selectedCategory
+    const location = f.get('location') || ''
+    const refLocation = location || 'X'
+    const ref = `${category?.slice(0,3)}-${model?.replaceAll(' ','').slice(0,9)}-${refLocation.replaceAll(' ','').slice(0,3)}`.toUpperCase()
 
     const {error}=await supabase.from('parts').insert({
       ref,
-      product:f.get('product'),
+      product:model,
       model,
       category,
-      quality:f.get('quality'),
+      quality:f.get('quality') || '',
       location,
-      supplier:f.get('supplier'),
+      supplier:f.get('supplier') || '',
       stock:Number(f.get('stock')||0),
       min_stock:Number(f.get('min_stock')||0),
       purchase_price_ht:Number(f.get('purchase_price_ht')||0),
@@ -140,6 +145,7 @@ function App(){
     })
 
     e.currentTarget.reset()
+    setStockCategory('Batterie')
     setShowStockForm(false)
     loadAll()
   }
@@ -454,20 +460,29 @@ function App(){
 
       {tab==='stock' && <section>
         <div className="section-header">
-          <div><h3>Stock pièces étiqueté</h3><p>Catégories : batterie, écran, HP, micro, caméra, connecteur, autre.</p></div>
+          <div><h3>Stock pièces étiqueté</h3><p>Référence automatique, modèle simplifié, type de pièce libre si besoin.</p></div>
           {isAdmin && <button className="green" onClick={()=>setShowStockForm(!showStockForm)}>+ Ajouter pièce</button>}
         </div>
 
         {showStockForm && isAdmin && <div className="card">
           <h3>Nouvelle pièce</h3>
           <form className="form" onSubmit={createPart}>
-            <input name="ref" placeholder="Référence interne auto ou manuelle" />
-            <input name="product" placeholder="Produit ex: iPhone" />
-            <input name="model" placeholder="Modèle" required />
-            <select name="category"><option>Batterie</option><option>Écran</option><option>HP</option><option>Micro</option><option>Caméra</option><option>Connecteur charge</option><option>Vitre arrière</option><option>Face ID</option><option>Autre</option></select>
-            <input name="quality" placeholder="Qualité" />
-            <input name="location" placeholder="Emplacement" />
-            <input name="supplier" placeholder="Fournisseur" />
+            <input name="model" placeholder="Modèle / appareil ex: iPhone 13" required />
+            <select name="category" value={stockCategory} onChange={e=>setStockCategory(e.target.value)}>
+              <option>Batterie</option>
+              <option>Écran</option>
+              <option>HP</option>
+              <option>Micro</option>
+              <option>Caméra</option>
+              <option>Connecteur charge</option>
+              <option>Vitre arrière</option>
+              <option>Face ID</option>
+              <option>Autre</option>
+            </select>
+            {stockCategory === 'Autre' && <input name="custom_category" placeholder="Écrire le type de pièce" required />}
+            <input name="quality" placeholder="Qualité (facultatif)" />
+            <input name="location" placeholder="Emplacement (facultatif)" />
+            <input name="supplier" placeholder="Fournisseur (facultatif)" />
             <input name="stock" type="number" placeholder="Stock" />
             <input name="min_stock" type="number" placeholder="Seuil alerte" />
             <input name="purchase_price_ht" type="number" placeholder="Prix HT" />
